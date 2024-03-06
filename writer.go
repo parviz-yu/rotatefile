@@ -140,16 +140,17 @@ func (d *Writer) Write(p []byte) (n int, err error) {
 		defer d.mu.Unlock()
 	}
 
-	n, err = d.file.Write(p)
+	// rotate file
+	err = d.doRotate()
 	if err != nil {
 		return
 	}
 
+	n, err = d.file.Write(p)
+
 	// update written size
 	d.written += uint64(n)
 
-	// rotate file
-	err = d.doRotate()
 	return
 }
 
@@ -231,6 +232,10 @@ func (d *Writer) rotatingFile(bakFile string, rename bool) error {
 	logfile := d.path
 	if d.cfg.RotateMode == ModeRename {
 		logfile = d.cfg.Filepath
+	}
+
+	if d.cfg.RotateMode == ModeCreate {
+		logfile = bakFile
 	}
 
 	// reopen log file
